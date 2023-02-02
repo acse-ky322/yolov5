@@ -137,7 +137,7 @@ def run(
 
         # Directories
         save_dir = increment_path(Path(project) / name, exist_ok=exist_ok)  # increment run
-        (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
+        (save_dir / 'detections' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
         # Load model
         model = DetectMultiBackend(weights, device=device, dnn=dnn, data=data, fp16=half)
@@ -258,7 +258,7 @@ def run(
 
             # Save/log
             if save_txt:
-                save_one_txt(predn, save_conf, shape, file=save_dir / 'labels' / f'{path.stem}.txt')
+                save_one_txt(predn, save_conf, shape, file=save_dir / 'detections' / f'{path.stem}.csv')
             if save_json:
                 save_one_json(predn, jdict, path, class_map)  # append to COCO-JSON dictionary
             callbacks.run('on_val_image_end', pred, predn, path, names, im[si])
@@ -340,7 +340,7 @@ def run(
     # Return results
     model.float()  # for training
     if not training:
-        s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
+        s = f"\n{len(list(save_dir.glob('detections/*.csv')))} labels saved to {save_dir / 'detections'}" if save_txt else ''
         LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}{s}")
     maps = np.zeros(nc) + map
     for i, c in enumerate(ap_class):
