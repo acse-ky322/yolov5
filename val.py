@@ -28,6 +28,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from tqdm import tqdm
+import pandas as pd
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -100,7 +101,7 @@ def run(
         weights=None,  # model.pt path(s)
         batch_size=32,  # batch size
         imgsz=640,  # inference size (pixels)
-        conf_thres=0.001,  # confidence threshold
+        conf_thres=0.25,  # confidence threshold
         iou_thres=0.6,  # NMS IoU threshold
         max_det=300,  # maximum detections per image
         task='val',  # train, val, test, speed or study
@@ -121,7 +122,7 @@ def run(
         model=None,
         dataloader=None,
         save_dir=Path(''),
-        plots=True,
+        plots=False,
         callbacks=Callbacks(),
         compute_loss=None,
 ):
@@ -274,15 +275,26 @@ def run(
     if len(stats) and stats[0].any():
         tp, fp, p, r, f1, ap, ap_class = ap_per_class(*stats, plot=plots, save_dir=save_dir, names=names)
         ap50, ap = ap[:, 0], ap.mean(1)  # AP@0.5, AP@0.5:0.95
-        mp, mr, map50, map = p.mean(), r.mean(), ap50.mean(), ap.mean()
+        tp, fp, mp, mr, map50, map = tp.mean(), fp.mean(), p.mean(), r.mean(), ap50.mean(), ap.mean()
     nt = np.bincount(stats[3].astype(int), minlength=nc)  # number of targets per class
+    fn_1=nt.sum()-tp
+    # detect_metrics=np.array([tp,fp,fn_1])
+    dm = {'TP': [tp], 'FP': [fp],'FN':[fn_1]}
+    detect_metrics=pd.DataFrame(data=dm)
+    # np.savetxt('detect_metrics.csv', detect_metrics, delimiter=',')
+    #detect_metrics.to_csv('detect_metrics.csv')
+    (save_dir / 'statistics').mkdir(parents=True, exist_ok=True)
+    detect_metrics.to_csv(save_dir / 'statistics/res.csv')
+    
+    
+    
 
     # Print results
     pf = '%22s' + '%11i' * 2 + '%11.3g' * 4  # print format
     LOGGER.info(pf % ('all', seen, nt.sum(), mp, mr, map50, map))
     if nt.sum() == 0:
         LOGGER.warning(f'WARNING ⚠️ no labels found in {task} set, can not compute metrics without labels')
-
+    #
     # Print results per class
     if (verbose or (nc < 50 and not training)) and nc > 1 and len(stats):
         for i, c in enumerate(ap_class):
@@ -342,9 +354,9 @@ def parse_opt():
     parser.add_argument('--weights', nargs='+', type=str, default=ROOT / 'yolov5s.pt', help='model path(s)')
     parser.add_argument('--batch-size', type=int, default=32, help='batch size')
     parser.add_argument('--imgsz', '--img', '--img-size', type=int, default=640, help='inference size (pixels)')
-    parser.add_argument('--conf-thres', type=float, default=0.001, help='confidence threshold')
-    parser.add_argument('--iou-thres', type=float, default=0.6, help='NMS IoU threshold')
-    parser.add_argument('--max-det', type=int, default=300, help='maximum detections per image')
+    parser.add_argument('--conf-thres', type=float, default=0.25, help='confidence threshold')
+    parser.add_argument('--iou-thres', type=float, default=0.45, help='NMS IoU threshold')
+    parser.add_argument('--max-det', type=int, default=1000, help='maximum detections per image')
     parser.add_argument('--task', default='val', help='train, val, test, speed or study')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--workers', type=int, default=8, help='max dataloader workers (per RANK in DDP mode)')
