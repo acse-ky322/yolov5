@@ -11,7 +11,7 @@ Making the detection result csv instead of txt in detect.py and val.py
   
 Output and store the TP, FP and FN numbers in val.py
   
-Set plotting other testing results to False as default in val.py 
+Set the default threshold consistant as detect.py in val.py 
 
 
 </div>
